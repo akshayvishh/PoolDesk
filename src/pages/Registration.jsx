@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import Modal from '../components/ui/Modal';
 import Receipt from '../components/ui/Receipt';
-import { formatINR, formatTime, generatePassId, calculateExpiry } from '../utils/formatters';
-import { PASS_TYPES, PAYMENT_METHODS, mockPools } from '../services/mockData';
+import { formatINR, generatePassId, calculateExpiry } from '../utils/formatters';
+import { PASS_TYPES, PAYMENT_METHODS } from '../services/mockData';
 
 const INITIAL = { name: '', phone: '', pool: 'Pool A', passType: 'hourly', paymentMethod: 'cash' };
 
@@ -255,6 +255,16 @@ export default function Registration() {
       {/* Receipt modal */}
       <Modal open={receiptOpen} onClose={() => setReceiptOpen(false)} title="Pass Issued — Receipt" size="sm">
         <Receipt registration={receipt} onClose={() => setReceiptOpen(false)} />
+        <div style={{ marginTop: 12, textAlign: 'center', borderTop: '1px dashed var(--color-border)', paddingTop: 12 }}>
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => { setReceiptOpen(false); navigate('/active-swimmers'); }}
+            style={{ width: '100%' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>pool</span>
+            Go to All Active Swimmers
+          </button>
+        </div>
       </Modal>
     </>
   );

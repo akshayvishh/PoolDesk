@@ -71,8 +71,10 @@ export default function Sidebar() {
                 <span className="material-symbols-outlined">admin_panel_settings</span>
               </div>
               <div>
-                <div className="sidebar-user-name">{user.name.split(' ')[0]} {user.name.split(' ')[1]?.[0]}.</div>
-                <div className="sidebar-user-role">{user.role}</div>
+                <div className="sidebar-user-name">
+                  {user?.name ? `${user.name.split(' ')[0]} ${user.name.split(' ')[1]?.[0] || ''}.` : 'Operator'}
+                </div>
+                <div className="sidebar-user-role">{user?.role || 'Staff'}</div>
               </div>
             </div>
             <div className="sidebar-status-dot" title="Online" />

@@ -94,8 +94,6 @@ export function formatPhone(phone) {
 /** Generate unique Pass ID */
 export function generatePassId() {
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-IN', { timeZone: TIMEZONE })
-    .split('/').reverse().join('').replace(/\//g, '');
   // Format: PD-YYYYMMDD-XXXX
   const dateFormatted = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
   const suffix = Math.random().toString(36).toUpperCase().slice(2, 6);

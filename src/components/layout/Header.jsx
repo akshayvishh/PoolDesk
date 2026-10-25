@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getCurrentTimeIST, getTodayDisplay } from '../../utils/formatters';
+import { getCurrentTimeIST } from '../../utils/formatters';
 
-export default function Header({ title, subtitle }) {
+export default function Header() {
   const { user } = useApp();
   const [time, setTime] = useState(getCurrentTimeIST());
 

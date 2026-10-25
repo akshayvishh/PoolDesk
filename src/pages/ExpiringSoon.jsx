@@ -4,7 +4,7 @@ import { PassTypeBadge, PaymentBadge } from '../components/ui/Badge';
 import Modal from '../components/ui/Modal';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import Receipt from '../components/ui/Receipt';
-import { formatTime, formatRemaining, formatINR, formatDateTime, calculateExpiry } from '../utils/formatters';
+import { formatTime, formatRemaining, formatINR, calculateExpiry } from '../utils/formatters';
 import { PASS_TYPES, PAYMENT_METHODS } from '../services/mockData';
 
 function Countdown({ expiryTime }) {
