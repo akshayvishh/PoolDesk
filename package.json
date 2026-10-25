@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "backend": "cd backend && .\\venv\\Scripts\\uvicorn main:app --reload --port 8000",
+    "test:db": "cd backend && .\\venv\\Scripts\\python test_db.py"
   },
   "dependencies": {
     "react": "^19.3.1",

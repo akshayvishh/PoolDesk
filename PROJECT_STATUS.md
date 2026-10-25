@@ -1,85 +1,62 @@
 # PoolDesk — Project Status & Handover
 
-**Timestamp:** 2026-10-25 17:05 IST  
-**Framework:** React 19 + Vite 8 + React Router DOM 7  
-**Status:** Complete Frontend (All 7 Screens Built, Fully Routed, and Production Verified)
+**Timestamp:** 2026-10-25 17:56 IST  
+**Framework:** React 19 + Vite 8 + Python 3.14 + FastAPI + PyMongo + MongoDB Atlas  
+**Status:** Full-Stack Integrated (Frontend Complete & Routed; FastAPI Backend & MongoDB Atlas Connected and Verified)
 
 ---
 
 ## 1. Project Summary & Completed Architecture
 
-The PoolDesk frontend has been fully recovered, wired, and completed from its existing state without rebuilding from scratch. All seven core screens and navigation controls are functional and production-ready.
+The PoolDesk system is now an integrated full-stack application with an asynchronous React 19 frontend and a Python FastAPI backend connected directly to MongoDB Atlas.
 
-### Routing & Navigation (`src/App.jsx`)
-- Complete React Router DOM (`BrowserRouter`) integration wrapping protected application routes.
-- **Public Route:**
-  - `/login` -> `Login` (dedicated strictly for Pool Owner; no owner signup/registration routes or links).
-- **Protected Routes (wrapped under `AppLayout`):**
-  - `/` -> Redirects to `/dashboard`
-  - `/dashboard` -> `Dashboard`
-  - `/registration` -> `Registration` (Swimmer pass registration with capacity checks)
-  - `/active-swimmers` -> `ActiveSwimmers` (Real-time live countdowns, quick checkout, extension, receipt viewing)
-  - `/expiring-soon` -> `ExpiringSoon` (Strictly passes with <= 10 minutes remaining)
-  - `/records` -> `Records` (Screen 6: Master ledger, multi-filter ribbon, audit details modal, pass extension, soft cancellation, CSV export)
-  - `/reports` -> `Reports` (Screen 7: Financial analytics, hourly swim occupancy curve, cash vs UPI breakdown, pool utilization, CSV & print report)
-  - `*` -> `NotFound` (404 Fallback page with back and dashboard navigation buttons).
-- **Authentication Guards:**
-  - Unauthenticated users attempting to access protected routes are redirected to `/login`.
-  - Authenticated session state persists across page refresh via `sessionStorage` (`pd_auth`).
-  - Successful owner login redirects to `/dashboard`.
-  - Sidebar "Log Out" clears the session and returns to `/login`.
+### Backend Architecture (`backend/`)
+- **Location:** [`backend/`](file:///c:/Users/AKSHAY/OneDrive/Desktop/PoolDesk/PoolDesk/backend)
+- **Framework & Dependencies:** Python 3.14, FastAPI 0.162, Uvicorn 0.54, PyMongo 4.19 (`dnspython`), Pydantic 2.14, Python-Dotenv.
+- **Environment & Secret Protection:**
+  - `backend/.env` configured and strictly added to `.gitignore`.
+  - `backend/.env.example` created with template placeholders.
+  - Dedicated diagnostic CLI: `python backend/test_db.py`.
+- **Database Connection:**
+  - Connected via PyMongo to MongoDB Atlas cluster (`pooldesk_db`).
+  - Connection ping verified (`{'ok': 1}`).
+- **REST API Endpoints Implemented:**
+  - `GET /api/health` — Service health and live MongoDB Atlas connectivity status.
+  - `GET /api/db/test` — Database ping and diagnostic reporting.
+  - `POST /api/auth/login` — Owner authentication.
+  - `GET /api/pools` — Pool list (Pool A, Pool B, Pool C).
+  - `GET /api/pools/occupancy` — Real-time active swimmer counts and available capacity per pool.
+  - `GET /api/registrations` — Query registrations with search (name, phone, pass ID), pool, status, passType, and paymentMethod filters.
+  - `POST /api/registrations` — Issue new pass, check pool capacity guard, compute expiry, generate Pass ID (`PD-YYYYMMDD-XXXX`), and persist in Atlas.
+  - `PATCH /api/registrations/{id}/checkout` — Mark pass completed, record checkout timestamp, release pool capacity.
+  - `PATCH /api/registrations/{id}/extend` — Extend pass duration, append to extension audit history.
+  - `PATCH /api/registrations/{id}/cancel` — Soft-cancel pass with required audit reason, preserving paid billing data.
+  - `POST /api/seed` — Seed default pools and test registrations into MongoDB Atlas.
 
-### Screens Implemented (7 of 7)
-1. **Owner Login (`src/pages/Login.jsx`)**:
-   - Split-screen UI adhering to Stitch design system.
-   - Master password authentication with toggle visibility.
-   - Strictly reserved for pool operators; no swimmer registration confusion or owner signup.
-2. **Dashboard (`src/pages/Dashboard.jsx`)**:
-   - 4 Metric cards: Active Swimmers in water, Expiring Soon (<10m), Today's Collection (₹), Total Passes Today.
-   - Pool Occupancy progress bars for Pool A, Pool B, and Pool C with capacity color alerts.
-   - Expiring soon quick widget with navigation link.
-   - Recent registrations table with live data.
-3. **New Swimmer Registration (`src/pages/Registration.jsx`)**:
-   - Form for swimmer name, 10-digit mobile number, pool selection, pass type (Hourly ₹150 / Full-Day ₹300), and payment mode (Cash / UPI Online).
-   - Real-time pool capacity guard preventing overbooking.
-   - Printable pass receipt generation modal with direct shortcut to All Active Swimmers.
-4. **All Active Swimmers (`src/pages/ActiveSwimmers.jsx`)**:
-   - Live real-time countdown timers.
-   - Search by name, phone, or Pass ID; filter by pool.
-   - Quick checkout with capacity release confirmation.
-   - Pass extension/upgrade modal and receipt viewing.
-5. **Expiring Soon (`src/pages/ExpiringSoon.jsx`)**:
-   - Filtered strictly to unexpired passes with <= 10 minutes remaining.
-   - Rapid one-click time extensions (+30m, +1h, full-day) and checkout action.
-6. **Manage Records (`src/pages/Records.jsx`) [NEW]**:
-   - Master data table with search by Name, Phone (+91), or Pass ID.
-   - Multi-criteria filtering: Pool (All, A, B, C), Status (Active, Expiring Soon, Expired, Completed, Cancelled), Pass Type, Payment Method.
-   - Metric overview tiles (Total Registrations, Active in Water, Checked Out, Cancelled Passes).
-   - Slide-over/modal audit inspector detailing customer profile, timestamps, and extension logs.
-   - Soft cancellation keeping original financial record intact for accounting audit.
-   - Live CSV export functionality.
-7. **Reports & Analytics (`src/pages/Reports.jsx`) [NEW]**:
-   - Date range selector (Today, Yesterday, Last 7 Days, This Month, All Time).
-   - 4 Core revenue cards: Total Net Collection, Cash Collection, UPI/Online Collection, Cancellations/Refunds.
-   - Hourly Swim Occupancy visualization curve (06:00 AM – 10:00 PM).
-   - Pass-wise sales distribution (Hourly vs Full-Day revenue).
-   - Pool utilization and capacity analysis.
-   - Settlement reconciliation ledger with Print Report (`window.print()`) and CSV export.
-
-### Core Business Rules Verified
-- **Pass Pricing:** Hourly = ₹150 (1 hour); Full-Day = ₹300 (until 10:00 PM closing time IST).
-- **Capacity Release:** Expiration does not automatically release pool capacity; capacity is released strictly upon checkout.
-- **Soft Cancellation:** Cancellations record a required audit reason and retain paid transaction records in the ledger.
-- **Indian Localization:** Currency formatted with `₹` (`en-IN`), dates and times in `Asia/Kolkata` IST, phone formatting with `+91`.
+### Frontend & API Integration
+- **Client Service (`src/services/api.js`):** Asynchronous API client bridging frontend context with FastAPI endpoints.
+- **State Management (`src/context/AppContext.jsx`):** Optimistic local updates with background server sync and graceful offline fallback.
+- **Header Live Status (`src/components/layout/Header.jsx`):** Live database status indicator (`Atlas: Connected` / `Database: Ready`).
+- **All 7 Frontend Screens Working:**
+  1. `/login` — Owner Login (no signup routes).
+  2. `/dashboard` — Live operations, pool occupancy, revenue.
+  3. `/registration` — Swimmer pass issuance with capacity guards.
+  4. `/active-swimmers` — Active swimmers table with live timers, quick checkout, extension.
+  5. `/expiring-soon` — Unexpired passes with <= 10m remaining.
+  6. `/records` — Manage Records with multi-filter, search, audit modal, soft cancellation, CSV export.
+  7. `/reports` — Business intelligence, hourly swim curves, payment breakdown, CSV/print report.
+  8. `*` — 404 Fallback page.
 
 ---
 
 ## 2. Verified Test & Build Results
 
-- **`npm run build`**: **PASS** (Exit code 0, 42 modules transformed, zero compilation errors).
-- **`npm run lint` (`oxlint`)**: **PASS** (Exit code 0, zero errors, clean codebase).
-- **Local Dev Server**: **PASS** (Vite running on `http://localhost:5173/`, verified HTTP 200 OK response).
-- **Browser Playwright Driver**: The subagent environment encountered an upstream network issue downloading the Playwright browser driver from Azure Edge CDN (`404 Not Found`). The local HTTP server and application bundle were verified independently via terminal commands and build validation.
+- **MongoDB Atlas Ping (`test_db.py`)**: **PASS** (`[+] SUCCESS: Connected to MongoDB Atlas! Details: Ping successful: {'ok': 1}. Connected to database 'pooldesk_db' on Atlas`).
+- **Backend API Server**: **PASS** (Uvicorn running on `http://127.0.0.1:8000`, `/api/health` returns status `healthy` with `connected: true`).
+- **Live Database Operations**: **PASS** (Tested seed, pool occupancy query, pass creation, search, and checkout against MongoDB Atlas).
+- **Frontend Build (`npm run build`)**: **PASS** (Exit code 0, 43 modules transformed).
+- **Frontend Lint (`oxlint`)**: **PASS** (Exit code 0, zero errors).
+- **Frontend Dev Server**: **PASS** (Vite running on `http://localhost:5173/`, verified HTTP 200 OK).
 
 ---
 
@@ -87,36 +64,33 @@ The PoolDesk frontend has been fully recovered, wired, and completed from its ex
 
 ```
 PoolDesk/
-├── package.json
+├── package.json                    # Scripts for frontend + backend (npm run dev, npm run backend, npm run test:db)
 ├── vite.config.js
-├── src/
-│   ├── App.jsx                     # Complete router wiring
-│   ├── main.jsx                    # Root render
-│   ├── index.css                   # Global design tokens and utilities
-│   ├── context/
-│   │   └── AppContext.jsx          # App state, auth, registrations, capacity, revenue
-│   ├── utils/
-│   │   └── formatters.js           # INR ₹, IST dates, pass ID helpers
-│   ├── services/
-│   │   └── mockData.js             # Mock seed registrations, pools, pass pricing
-│   ├── components/
-│   │   ├── layout/
-│   │   │   ├── AppLayout.jsx       # Layout shell (Sidebar + Header + Outlet)
-│   │   │   ├── Header.jsx          # Live IST clock, network status, operator badge
-│   │   │   └── Sidebar.jsx         # Navigation rail with active route states and logout
-│   │   └── ui/
-│   │       ├── Badge.jsx           # Status, pass type, and payment chips
-│   │       ├── ConfirmDialog.jsx   # Action confirmation modal
-│   │       ├── Modal.jsx           # Accessible modal container
-│   │       ├── Receipt.jsx         # Printable thermal/digital receipt
-│   │       └── ToastContainer.jsx  # Notification alerts
-│   └── pages/
-│       ├── Login.jsx               # Screen 1: Owner Login
-│       ├── Dashboard.jsx           # Screen 2: Dashboard
-│       ├── Registration.jsx        # Screen 3: New Swimmer Registration
-│       ├── ActiveSwimmers.jsx      # Screen 4: All Active Swimmers
-│       ├── ExpiringSoon.jsx        # Screen 5: Expiring Soon (<10m)
-│       ├── Records.jsx             # Screen 6: Manage Records
-│       ├── Reports.jsx             # Screen 7: Reports & Analytics
-│       └── NotFound.jsx            # 404 Fallback page
+├── backend/
+│   ├── .env.example                # Template configuration
+│   ├── .env                        # Live Atlas URI & database credentials (git-ignored)
+│   ├── requirements.txt            # Python dependencies
+│   ├── venv/                       # Python virtual environment (git-ignored)
+│   ├── database.py                 # PyMongo Atlas connection & ping helper
+│   ├── test_db.py                  # Standalone connection diagnostic tool
+│   ├── models.py                   # Pydantic schemas
+│   ├── seed_data.py                # Database seed definitions
+│   └── main.py                     # FastAPI application & REST endpoints
+└── src/
+    ├── services/
+    │   ├── api.js                  # Frontend API client
+    │   └── mockData.js             # Initial fallback data
+    ├── context/
+    │   └── AppContext.jsx          # App state, auth, live sync
+    ├── components/
+    │   └── layout/Header.jsx       # Top navigation with live Atlas status chip
+    └── pages/
+        ├── Login.jsx
+        ├── Dashboard.jsx
+        ├── Registration.jsx
+        ├── ActiveSwimmers.jsx
+        ├── ExpiringSoon.jsx
+        ├── Records.jsx
+        ├── Reports.jsx
+        └── NotFound.jsx
 ```

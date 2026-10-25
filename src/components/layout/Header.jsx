@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { getCurrentTimeIST } from '../../utils/formatters';
 
 export default function Header() {
-  const { user } = useApp();
+  const { user, dbStatus } = useApp();
   const [time, setTime] = useState(getCurrentTimeIST());
 
   useEffect(() => {
@@ -15,8 +15,10 @@ export default function Header() {
     <header className="top-header">
       <div className="header-left">
         <div className="header-chip">
-          <span className="material-symbols-outlined">wifi</span>
-          <span>Network: Ready</span>
+          <span className="material-symbols-outlined" style={{ fontSize: 14, color: dbStatus?.connected ? '#22c55e' : 'var(--color-secondary)' }}>
+            {dbStatus?.connected ? 'database' : 'storage'}
+          </span>
+          <span>{dbStatus?.connected ? 'Atlas: Connected' : 'Database: Ready'}</span>
         </div>
         <div className="header-chip">
           <span className="material-symbols-outlined">schedule</span>

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { mockRegistrations, mockPools } from '../services/mockData';
+import { api } from '../services/api';
 
 const AppContext = createContext(null);
 
@@ -7,9 +8,10 @@ export function AppProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(
     () => sessionStorage.getItem('pd_auth') === 'true'
   );
-  const [user] = useState({ name: 'Rajesh Kumar', role: 'Owner / Admin', station: 'Station 01' });
+  const [user] = useState({ name: 'Akshay Vishwakarma', role: 'Owner / Admin', station: 'Station 01' });
   const [registrations, setRegistrations] = useState(mockRegistrations);
-  const [pools] = useState(mockPools);
+  const [pools, setPools] = useState(mockPools);
+  const [dbStatus, setDbStatus] = useState({ connected: false, configured: false, status: 'offline' });
 
   // Toast notifications
   const [toasts, setToasts] = useState([]);
@@ -23,6 +25,41 @@ export function AppProvider({ children }) {
     setToasts(prev => [...prev, { id, message, type }]);
     if (duration > 0) setTimeout(() => removeToast(id), duration);
   }, [removeToast]);
+
+  // Sync with FastAPI backend on startup
+  useEffect(() => {
+    let mounted = true;
+    async function syncBackend() {
+      try {
+        const health = await api.checkHealth();
+        if (!mounted) return;
+
+        if (health.status === 'healthy') {
+          setDbStatus({
+            status: 'online',
+            connected: health.database?.connected || false,
+            configured: health.database?.configured || false,
+          });
+
+          // Fetch pools and registrations from backend
+          const backendPools = await api.getPools();
+          if (backendPools && backendPools.length > 0 && mounted) {
+            setPools(backendPools);
+          }
+
+          const backendRegs = await api.getRegistrations();
+          if (backendRegs && backendRegs.length > 0 && mounted) {
+            setRegistrations(backendRegs);
+          }
+        }
+      } catch {
+        // Backend offline — keep mock fallback
+      }
+    }
+
+    syncBackend();
+    return () => { mounted = false; };
+  }, []);
 
   const login = useCallback((username, password) => {
     // Demo auth for pool owner — strictly authenticated
@@ -42,9 +79,18 @@ export function AppProvider({ children }) {
     setIsAuthenticated(false);
   }, []);
 
-  // Add registration
+  // Add registration (optimistic update + server sync)
   const addRegistration = useCallback((reg) => {
     setRegistrations(prev => [reg, ...prev]);
+    api.createRegistration({
+      name: reg.name,
+      phone: reg.phone,
+      pool: reg.pool,
+      passType: reg.passType,
+      paymentMethod: reg.paymentMethod,
+    }).catch(() => {
+      // Ignored if offline
+    });
   }, []);
 
   // Update registration
@@ -52,6 +98,13 @@ export function AppProvider({ children }) {
     setRegistrations(prev =>
       prev.map(r => r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r)
     );
+
+    // If this update contains an extension, notify backend
+    if (updates.extensionHistory?.length) {
+      const latestExt = updates.extensionHistory[updates.extensionHistory.length - 1];
+      const type = latestExt.type.includes('Full-Day') ? 'fullday' : 'hourly';
+      api.extend(id, { type, paymentMethod: latestExt.paymentMethod }).catch(() => {});
+    }
   }, []);
 
   // Checkout (releases pool capacity)
@@ -59,6 +112,7 @@ export function AppProvider({ children }) {
     setRegistrations(prev =>
       prev.map(r => r.id === id ? { ...r, status: 'completed', checkoutTime: new Date().toISOString(), updatedAt: new Date().toISOString() } : r)
     );
+    api.checkout(id).catch(() => {});
   }, []);
 
   // Cancel (soft delete, retains financial record)
@@ -66,6 +120,7 @@ export function AppProvider({ children }) {
     setRegistrations(prev =>
       prev.map(r => r.id === id ? { ...r, status: 'cancelled', cancelReason: reason, cancelledAt: new Date().toISOString(), updatedAt: new Date().toISOString() } : r)
     );
+    api.cancel(id, reason).catch(() => {});
   }, []);
 
   // All active swimmers in facility (capacity is held until checkout)
@@ -112,7 +167,7 @@ export function AppProvider({ children }) {
       isAuthenticated, user, login, logout,
       registrations, addRegistration, updateRegistration, checkoutRegistration, cancelRegistration,
       pools, getActiveRegistrations, getExpiringSoon, getPoolOccupancy, getTodayRevenue,
-      toasts, addToast, removeToast,
+      toasts, addToast, removeToast, dbStatus,
     }}>
       {children}
     </AppContext.Provider>
